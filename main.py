@@ -1,4 +1,4 @@
-import os, json, datetime, requests
+import os, json, time, requests
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
 from dotenv import load_dotenv
@@ -8,6 +8,18 @@ from career_ops_apply import auto_apply
 from cv_scoring import score_job
 
 load_dotenv()
+
+
+def retry(func, retries=3, delay=5):
+    for attempt in range(1, retries + 1):
+        try:
+            return func()
+        except Exception as e:
+            print(f"Attempt {attempt} failed: {e}")
+            if attempt < retries:
+                time.sleep(delay)
+    return []
+
 
 KEYWORDS = ["AI Engineer", "Backend Developer", "C# Developer", "Fullstack Developer", ".net developer", "Software Engineer", "Software Developer"]
 # Updated location rules
@@ -171,7 +183,8 @@ def main():
         auto_apply(job)
 
     # Email summary
-    send_email(scored_jobs)
+    if scored_jobs:
+        send_email(scored_jobs)
 
 
 if __name__ == "__main__":
