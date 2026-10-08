@@ -1,4 +1,7 @@
 requests
 sendgrid
 python-dotenv
+beautifulsoup4
+lxml
+
 
