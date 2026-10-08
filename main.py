@@ -2,6 +2,7 @@ import os, json, datetime, requests
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
 from dotenv import load_dotenv
+from linkedin_scraper import scrape_linkedin_jobs
 
 load_dotenv()
 
@@ -43,45 +44,17 @@ CONTRACT_KEYWORDS = ["Contract", "Contractor", "Temp", "Temporary"]
 # LINKEDIN API
 # -----------------------------
 def fetch_linkedin_jobs():
-    url = "https://linkedin-jobs-api.p.rapidapi.com/search"
-    headers = {"X-RapidAPI-Key": os.getenv("RAPID_API_KEY")}
     jobs = []
 
     for kw in KEYWORDS:
         for loc in SEARCH_LOCATIONS:
-            params = {"keywords": kw, "geo_id": loc["geo_id"], "limit": 20}
-
-            r = requests.get(url, headers=headers, params=params)
-            if r.status_code != 200:
-                continue
-
-            for job in r.json().get("data", []):
-                workplace = job.get("workplaceType", "")
-                title = job.get("title", "")
-
-                # Remote filter
-                if loc["remote_only"] and not any(
-                    rf in workplace for rf in REMOTE_FILTERS
-                ):
-                    continue
-
-                # Contract filter
-                if loc["contract_only"] and not any(
-                    ck.lower() in title.lower() for ck in CONTRACT_KEYWORDS
-                ):
-                    continue
-
-                jobs.append(
-                    {
-                        "title": job.get("title"),
-                        "company": job.get("companyName"),
-                        "location": job.get("location"),
-                        "link": job.get("applyUrl"),
-                        "source": "LinkedIn",
-                        "keyword": kw,
-                        "region": loc["name"],
-                    }
-                )
+            results = scrape_linkedin_jobs(
+                keyword=kw,
+                location=loc["name"],
+                remote_only=loc["remote_only"],
+                contract_only=loc["contract_only"],
+            )
+            jobs.extend(results)
 
     return jobs
 
