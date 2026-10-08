@@ -1,0 +1,6 @@
+
+Skills
+C# .Net, system integration, MVC, Web API, Microservices, Entity Framework, SQL, Solution design, agile
+React, Redux, Typescript, React Hook Form, Yup, JavaScript, GitHub Copilot
+IIS, XML, HTML, CI/CD, Angular, Python, Azure, Microsoft Foundry, MCP, RCG, LLM, Microsoft Agent Framework SDK
+

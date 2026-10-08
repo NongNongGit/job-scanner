@@ -3,11 +3,13 @@ from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
 from dotenv import load_dotenv
 from linkedin_scraper import scrape_linkedin_jobs
+from job_history import filter_new_jobs
+from career_ops_apply import auto_apply
+from cv_scoring import score_job
 
 load_dotenv()
 
-KEYWORDS = ["AI Engineer", "Backend Developer", "C# Developer", "Fullstack Developer"]
-
+KEYWORDS = ["AI Engineer", "Backend Developer", "C# Developer", "Fullstack Developer", ".net developer", "Software Engineer", "Software Developer"]
 # Updated location rules
 SEARCH_LOCATIONS = [
     {
@@ -20,24 +22,33 @@ SEARCH_LOCATIONS = [
         "name": "Australia",
         "geo_id": "101452733",
         "remote_only": True,
-        "contract_only": True,
+        "contract_only": False,
     },
     {
         "name": "Seattle",
         "geo_id": "103644278",
         "remote_only": True,
-        "contract_only": True,
+        "contract_only": False,
     },
     {
         "name": "United Kingdom",
         "geo_id": "101165590",
         "remote_only": True,
-        "contract_only": True,
+        "contract_only": False,
     },
 ]
 
 REMOTE_FILTERS = ["Remote", "Hybrid"]
 CONTRACT_KEYWORDS = ["Contract", "Contractor", "Temp", "Temporary"]
+
+
+def is_senior_role(title):
+    title_lower = title.lower()
+    senior_keywords = [
+        "senior",
+        "staff",
+    ]
+    return any(k in title_lower for k in senior_keywords)
 
 
 # -----------------------------
@@ -138,12 +149,29 @@ def main():
     seek_jobs = fetch_seek_jobs()
     all_jobs = linkedin_jobs + seek_jobs
 
-    # Save results
+    # Track history
+    new_jobs = filter_new_jobs(all_jobs)
+
+    # Senior-only filter
+    senior_jobs = [job for job in new_jobs if is_senior_role(job["title"])]
+
+    # Add CV score
+    for job in senior_jobs:
+        job["cv_score"] = score_job(job.get("description", ""))
+
+    # Filter by score (optional)
+    scored_jobs = [job for job in senior_jobs if job["cv_score"] >= 4]
+
+    # Save scored jobs
     with open("jobs.json", "w") as f:
-        json.dump(all_jobs, f, indent=2)
+        json.dump(scored_jobs, f, indent=2)
+
+    # Career-Ops assisted apply (prepare only)
+    for job in scored_jobs:
+        auto_apply(job)
 
     # Email summary
-    send_email(all_jobs)
+    send_email(scored_jobs)
 
 
 if __name__ == "__main__":
