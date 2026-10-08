@@ -1,0 +1,34 @@
+name: Daily Job Scanner
+on:
+  schedule:
+    - cron: "0 19 * * *"  # 8 AM NZDT (UTC+13)
+  workflow_dispatch:
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run job scanner
+        env:
+          RAPID_API_KEY: ${{ secrets.RAPID_API_KEY }}
+          SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
+        run: python main.py
+
+      - name: Commit results
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add jobs.json
+          git commit -m "Daily job scan results"
+          git push
