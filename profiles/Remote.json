@@ -1,0 +1,17 @@
+{
+  "linkedin": {
+    "location": "Remote",
+    "job_types": ["remote"],
+    "max_results": 50
+  },
+  "adzuna": {
+    "country": "nz",
+    "location": "Remote",
+    "max_results": 50
+  },
+  "filters": {
+    "min_salary": 0,
+    "remote_only": true,
+    "cv_score_threshold": 50
+  }
+}

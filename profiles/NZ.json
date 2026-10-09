@@ -1,0 +1,17 @@
+{
+  "linkedin": {
+    "location": "Auckland",
+    "job_types": ["full-time", "contract", "remote"],
+    "max_results": 50
+  },
+  "seek": {
+    "country": "nz",
+    "location": "Auckland",
+    "max_results": 50
+  },
+  "filters": {
+    "min_salary": 150000,
+    "remote_only": false,
+    "cv_score_threshold": 60
+  }
+}

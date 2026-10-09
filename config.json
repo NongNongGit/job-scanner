@@ -1,0 +1,36 @@
+{
+  "profiles": {
+    "nz": "NZ.json",
+    "au": "AU.json",
+    "remote": "Remote.json"
+  },
+  
+    "global_keywords": [
+    "AI Engineer",
+    "Backend Developer",
+    "C# Developer",
+    "Fullstack Developer",
+    ".net developer",
+    "Software Engineer",
+    "Software Developer"
+  ],
+
+  "retry": {
+    "retries": 3,
+    "delay_seconds": 5
+  },
+
+  "email": {
+    "from": "nongnong55b@gmail.com",
+    "to": "nongnong55b@gmail.com",
+    "subject": "Daily Job Scan Results",
+    "summary_subject": "Daily Job Scan Summary"
+  },
+
+  "scoring": {
+    "cv_keywords_weight": 0.6,
+    "company_score_weight": 0.2,
+    "salary_score_weight": 0.2,
+    "min_score_to_email": 50
+  }
+}
