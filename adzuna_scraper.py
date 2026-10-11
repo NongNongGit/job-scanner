@@ -17,25 +17,23 @@ def fetch_adzuna_jobs(profile):
 
     url = f"{BASE_URL}/{country}/search/1"
 
-    # Pick the first keyword and sanitize it
-    keyword = keywords[0].replace("#", "").replace(".", "").lower()
+    jobs = []
+    seen_urls = set()
+    for keyword in keywords:
+        params = {
+            "app_id": ADZUNA_APP_ID,
+            "app_key": ADZUNA_APP_KEY,
+            "results_per_page": 50,
+            "what": keyword.replace("#", "").replace(".", "").lower(),
+            "where": location,
+        }
 
-    params = {
-        "app_id": ADZUNA_APP_ID,
-        "app_key": ADZUNA_APP_KEY,
-        "results_per_page": 50,
-        "what": keyword,
-        "where": location,
-    }
+        try:
+            response = requests.get(url, params=params)
+            data = response.json()
 
-    try:
-        response = requests.get(url, params=params)
-        data = response.json()
-
-        jobs = []
-        for item in data.get("results", []):
-            jobs.append(
-                {
+            for item in data.get("results", []):
+                job = {
                     "title": item.get("title"),
                     "company": item.get("company", {}).get("display_name"),
                     "location": item.get("location", {}).get("display_name"),
@@ -43,9 +41,14 @@ def fetch_adzuna_jobs(profile):
                     "description": item.get("description"),
                     "source": "adzuna",
                 }
-            )
-        return jobs
+                job_url = job["url"]
+                if job_url is not None and job_url in seen_urls:
+                    continue
+                if job_url is not None:
+                    seen_urls.add(job_url)
+                jobs.append(job)
 
-    except Exception as e:
-        print("Adzuna error:", e)
-        return []
+        except Exception as e:
+            print("Adzuna error:", e)
+
+    return jobs
