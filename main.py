@@ -7,28 +7,34 @@ from filters import apply_filters
 from job_history import filter_new_jobs
 from email_sender import send_email, send_summary
 from scoring import score_job
+from adzuna_scraper import fetch_adzuna_jobs
 
 load_dotenv()
 
 
 def load_config():
-    # Load global config
     with open("config.json") as f:
         base = json.load(f)
+    return base
 
-    # Select profile
-    profile_name = os.getenv("JOB_PROFILE", "nz")
-    profile_path = base["profiles"][profile_name]
 
-    # Load profile config
-    with open(f"profiles/{profile_path}") as f:
-        profile = json.load(f)
+def load_all_profiles(base):
+    profiles = []
 
-    # Inject global keywords into LinkedIn scraper
-    global_kw = base["global_keywords"]
-    profile["linkedin"]["keywords"] = global_kw[:]  # copy
+    for name, filename in base["profiles"].items():
+        with open(f"profiles/{filename}") as f:
+            profile = json.load(f)
 
-    return base, profile
+        # Inject global keywords
+        profile["linkedin"]["keywords"] = base["global_keywords"][:]
+        profile["adzuna"]["keywords"] = base["global_keywords"][:]
+        
+        # Tag profile name for later
+        profile["profile_name"] = name
+
+        profiles.append(profile)
+
+    return profiles
 
 
 def retry(func, retries, delay, *args):
@@ -38,6 +44,7 @@ def retry(func, retries, delay, *args):
         try:
             return func(*args)
         except Exception as e:
+            print("error:", e)
             print(f"Attempt {attempt} failed: {e}")
             if attempt < retries:
                 time.sleep(delay)
@@ -45,32 +52,60 @@ def retry(func, retries, delay, *args):
 
 
 def main():
-    base, profile = load_config()
+    base = load_config()
+    profiles = load_all_profiles(base)
     retry_cfg = base["retry"]
 
-    # Fetch LinkedIn jobs only
-    linkedin_jobs = retry(
-        fetch_linkedin_jobs, retry_cfg["retries"], retry_cfg["delay_seconds"], profile
-    )
+    all_jobs = []
 
-    all_jobs = linkedin_jobs
-
-    # Apply filters
-    filtered_jobs = [job for job in all_jobs if apply_filters(job, profile)]
-
-    # Load CV text
+    # Load CV once
     with open("cv.txt") as f:
         cv_text = f.read()
 
-    # Score jobs
-    scored_jobs = []
-    for job in filtered_jobs:
-        job["score"] = score_job(job, cv_text, base, profile)
-        scored_jobs.append(job)
+    # Loop through all profiles
+    for profile in profiles:
+        print(f"\n=== Fetching jobs for profile: {profile['profile_name']} ===")
+
+        linkedin_jobs = retry(
+            fetch_linkedin_jobs,
+            retry_cfg["retries"],
+            retry_cfg["delay_seconds"],
+            profile,
+        )
+
+        # Tag jobs with profile name
+        for job in linkedin_jobs:
+            job["profile"] = profile["profile_name"]
+
+        # Adzuna jobs
+        adzuna_jobs = retry(
+            fetch_adzuna_jobs, retry_cfg["retries"], retry_cfg["delay_seconds"], profile
+        )
+
+        for job in adzuna_jobs:
+            job["profile"] = profile["profile_name"]
+            job["source"] = "adzuna"
+         
+        combined = linkedin_jobs + adzuna_jobs   
+        print("combined jobs count:", len(combined))
+        # Apply filters
+        filtered_jobs = combined #[job for job in combined if apply_filters(job, profile)]
+
+        # Score jobs
+        for job in filtered_jobs:
+            job["score"] = score_job(job, cv_text, base, profile)
+
+        all_jobs.extend(filtered_jobs)
 
     # Filter by minimum score
     min_score = base["scoring"]["min_score_to_email"]
-    final_jobs = [j for j in scored_jobs if j["score"] >= min_score]
+    final_jobs = [j for j in all_jobs if j["score"] >= min_score]
+
+    # Deduplicate by job URL
+    dedup = {}
+    for job in final_jobs:
+        dedup[job["url"]] = job
+    final_jobs = list(dedup.values())
 
     # Save output
     with open("jobs.json", "w") as f:
@@ -84,8 +119,8 @@ def main():
 
     # Daily summary
     summary = (
-        f"Total jobs fetched: {len(all_jobs)}\n"
-        f"After filters: {len(filtered_jobs)}\n"
+        f"Profiles scanned: {len(profiles)}\n"
+        f"Total jobs after filters: {len(all_jobs)}\n"
         f"Above score {min_score}: {len(final_jobs)}"
     )
 

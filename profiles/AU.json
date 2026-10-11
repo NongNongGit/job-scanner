@@ -5,9 +5,8 @@
     "max_results": 50
   },
   "adzuna": {
-    "country": "au",
-    "location": "Sydney",
-    "max_results": 50
+    "country": "AU",
+    "location": "Sydney"
   },
   "filters": {
     "min_salary": 120000,

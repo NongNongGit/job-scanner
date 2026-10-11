@@ -18,7 +18,6 @@ def send_email(jobs, base_config):
     sg = SendGridAPIClient(os.getenv("SENDGRID_API_KEY"))
     sg.send(message)
 
-
 def send_summary(summary_text, base_config):
     email_cfg = base_config["email"]
 

@@ -4,10 +4,9 @@
     "job_types": ["full-time", "contract", "remote"],
     "max_results": 50
   },
-  "seek": {
+  "adzuna": {
     "country": "nz",
-    "location": "Auckland",
-    "max_results": 50
+    "location": "Auckland"
   },
   "filters": {
     "min_salary": 150000,

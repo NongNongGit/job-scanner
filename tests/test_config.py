@@ -1,8 +1,9 @@
-from main import load_config
+from main import load_all_profiles, load_config
 
 
 def test_global_keywords_merge():
-    base, profile = load_config()
+    base = load_config()
+    profile = load_all_profiles(base)[0]
 
     assert "AI Engineer" in profile["linkedin"]["keywords"]
     assert "Software Developer" in profile["linkedin"]["keywords"]
