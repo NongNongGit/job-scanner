@@ -5,14 +5,11 @@
     "remote": "Remote.json"
   },
   
-    "global_keywords": [
+  "global_keywords": [
     "AI Engineer",
-    "Backend Developer",
     "C# Developer",
     "Fullstack Developer",
-    ".net developer",
-    "Software Engineer",
-    "Software Developer"
+    ".net developer"
   ],
 
   "retry": {
