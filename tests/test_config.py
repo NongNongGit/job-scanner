@@ -6,7 +6,7 @@ def test_global_keywords_merge():
     profile = load_all_profiles(base)[0]
 
     assert "AI Engineer" in profile["linkedin"]["keywords"]
-    assert "Software Developer" in profile["linkedin"]["keywords"]
+    assert "C# Developer" in profile["linkedin"]["keywords"]
 
     # ensure profile keywords were NOT kept
     assert isinstance(profile["linkedin"]["keywords"], list)
