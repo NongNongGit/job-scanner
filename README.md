@@ -98,6 +98,20 @@ This will:
 4. write results to `jobs.json`
 5. send a daily email summary
 
+## Run unit tests before pushing
+
+Install the repository's Git pre-push hook so every `git push` runs the unit tests locally:
+
+```bash
+git config --local core.hooksPath .githooks
+```
+
+The hook uses `labenv`, `.venv`, or `venv` when available, then falls back to Python on `PATH`. It runs the test suite with coverage and blocks the push if Python/pytest is unavailable, tests fail, or total coverage is below 80%. GitHub Actions applies the same 80% minimum. To run the tests and coverage check manually:
+
+```bash
+python -m pytest -q --cov=. --cov-report=term-missing --cov-fail-under=80
+```
+
 ## Notes
 
 - The scoring logic is intentionally tuned to your CV and job preferences.

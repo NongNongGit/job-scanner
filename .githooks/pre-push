@@ -1,0 +1,49 @@
+#!/bin/sh
+
+set -u
+
+repo_root=$(git rev-parse --show-toplevel) || exit 1
+cd "$repo_root" || exit 1
+
+if [ -n "${PYTHON:-}" ]; then
+    python_cmd=$PYTHON
+else
+    python_cmd=""
+    for candidate in \
+        "labenv/Scripts/python.exe" \
+        ".venv/Scripts/python.exe" \
+        "venv/Scripts/python.exe" \
+        ".venv/bin/python" \
+        "venv/bin/python"
+    do
+        if [ -x "$candidate" ]; then
+            python_cmd="./$candidate"
+            break
+        fi
+    done
+
+    if [ -z "$python_cmd" ]; then
+        python_cmd=$(command -v python3 || command -v python || true)
+    fi
+fi
+
+if [ -z "$python_cmd" ]; then
+    echo "Pre-push check failed: Python was not found. Activate or install the project environment first." >&2
+    exit 1
+fi
+
+if ! "$python_cmd" -m pytest --version >/dev/null 2>&1; then
+    echo "Pre-push check failed: pytest is not available in $python_cmd. Install requirements-dev.txt in the project environment." >&2
+    exit 1
+fi
+
+echo "Running unit tests before push..."
+"$python_cmd" -m pytest -q --cov=. --cov-report=term-missing --cov-fail-under=80
+test_status=$?
+
+if [ "$test_status" -ne 0 ]; then
+    echo "Pre-push check failed: unit tests did not pass; push cancelled." >&2
+    exit "$test_status"
+fi
+
+echo "Pre-push check passed."

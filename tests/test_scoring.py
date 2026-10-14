@@ -27,3 +27,13 @@ def test_score_job():
 
     score = score_job(job, cv_text, base, profile)
     assert score >= 30
+
+
+def test_score_salary_for_missing_low_and_mid_range_salaries():
+    from scoring import score_salary
+
+    profile = {"filters": {"min_salary": 80000}}
+
+    assert score_salary({}, profile) == 50
+    assert score_salary({"salary": 60000}, profile) == 30
+    assert score_salary({"salary": 100000}, profile) == 70

@@ -32,4 +32,4 @@ jobs:
             pip install -r requirements-dev.txt
 
       - name: Run tests
-        run: pytest -q --cov=. --cov-report=term-missing
+        run: pytest -q --cov=. --cov-report=term-missing --cov-fail-under=80

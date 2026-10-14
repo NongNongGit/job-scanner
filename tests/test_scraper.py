@@ -51,6 +51,36 @@ def test_scraper_normalization(monkeypatch):
     assert job["salary"] == 100000
 
 
+def test_linkedin_continues_after_keyword_request_failure(monkeypatch, capsys):
+    requested_keywords = []
+
+    def fake_get(url, headers, params):
+        keyword = params["keyword"]
+        requested_keywords.append(keyword)
+        if keyword == "broken":
+            raise RuntimeError("request failed")
+
+        class FakeResponse:
+            def json(self):
+                return {"data": []}
+
+        return FakeResponse()
+
+    monkeypatch.setattr("requests.get", fake_get)
+    profile = {
+        "linkedin": {
+            "keywords": ["broken", "working"],
+            "location": "Auckland",
+            "job_types": ["full-time"],
+            "max_results": 10,
+        }
+    }
+
+    assert linkedin_scraper.fetch_linkedin_jobs(profile) == []
+    assert requested_keywords == ["broken", "working"]
+    assert "LinkedIn API error for keyword 'broken': request failed" in capsys.readouterr().out
+
+
 def test_adzuna_requests_each_sanitized_keyword_and_deduplicates_by_url(monkeypatch):
     requests_made = []
 
