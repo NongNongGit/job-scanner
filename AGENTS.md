@@ -41,8 +41,9 @@ This repository uses a plan-first, looped workflow for all non-trivial work.
 - Run relevant tests locally in the repository's configured Python environment before handoff; local test execution is mandatory and cannot be replaced by CI results or delegated LLM review.
 - Report the exact local command and its pass/fail result. If tests cannot run locally, state the blocker and do not claim validation passed.
 - If a change is not covered by a relevant unit test, the task is incomplete until one is added.
-- The repository `.githooks/pre-push` hook must be enabled with `git config --local core.hooksPath .githooks`; it runs the unit tests and blocks pushes when Python/pytest is unavailable or tests fail.
+- The repository `.githooks/pre-push` hook must be enabled with `git config --local core.hooksPath .githooks`; it runs the local unit tests and coverage check, then validates source and wheel package builds. Install both `requirements.txt` and `requirements-dev.txt` in the hook's Python environment; the development requirements include `build`. The hook blocks pushes when Python, pytest, or `build` is unavailable, tests fail, or package building fails.
 - Local pre-push and CI test runs must enforce at least 80% total code coverage; coverage below 80% fails validation.
+- Pre-push coverage data, build inputs, and package artifacts must stay in an ephemeral directory that is cleaned up on success or failure. The hook must not use, modify, or delete pre-existing `build/` or `dist/` content.
 - Do not bypass the pre-push check with `--no-verify` except for an explicitly authorized emergency.
 
 ## GitHub delivery requirement

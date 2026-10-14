@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "job-scanner"
+version = "0.1.0"
+description = "A configurable job search and scoring utility"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "requests",
+    "sendgrid",
+    "python-dotenv",
+    "beautifulsoup4",
+    "lxml",
+]
+
+[project.scripts]
+job-scanner = "job_scanner.cli:main"
+
+[tool.setuptools]
+package-dir = {job_scanner = "src/job_scanner"}
+packages = ["job_scanner"]
+py-modules = [
+    "adzuna_scraper",
+    "career_ops_apply",
+    "email_sender",
+    "filters",
+    "job_history",
+    "linkedin_scraper",
+    "main",
+    "report",
+    "scoring",
+]
+

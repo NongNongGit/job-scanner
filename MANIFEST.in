@@ -1,0 +1,10 @@
+include README.md
+exclude .env
+exclude cv.txt
+exclude config.json
+exclude jobs.json
+exclude job_history.json
+recursive-exclude profiles *
+recursive-exclude tests *
+global-exclude .env
+global-exclude *.py[cod]

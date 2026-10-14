@@ -32,13 +32,48 @@ if [ -z "$python_cmd" ]; then
     exit 1
 fi
 
+temp_dir=$(mktemp -d "${TMPDIR:-${TEMP:-/tmp}}/job-scanner-pre-push.XXXXXX") || {
+    echo "Pre-push check failed: could not create a temporary validation directory." >&2
+    exit 1
+}
+
+cleanup() {
+    cleanup_status=$1
+    trap - EXIT
+
+    if [ -n "${temp_dir:-}" ] && [ -d "$temp_dir" ]; then
+        if ! rm -rf "$temp_dir"; then
+            echo "Pre-push check failed: could not remove temporary validation directory '$temp_dir'." >&2
+            if [ "$cleanup_status" -eq 0 ]; then
+                cleanup_status=1
+            fi
+        fi
+    fi
+    exit "$cleanup_status"
+}
+trap 'cleanup $?' EXIT
+trap 'exit 1' HUP INT TERM
+
+python_path() {
+    if command -v cygpath >/dev/null 2>&1; then
+        cygpath -w "$1"
+    else
+        printf '%s\n' "$1"
+    fi
+}
+
+temp_dir_for_python=$(python_path "$temp_dir") || {
+    echo "Pre-push check failed: could not resolve the temporary directory for Python." >&2
+    exit 1
+}
+
 if ! "$python_cmd" -m pytest --version >/dev/null 2>&1; then
     echo "Pre-push check failed: pytest is not available in $python_cmd. Install requirements-dev.txt in the project environment." >&2
     exit 1
 fi
 
 echo "Running unit tests before push..."
-"$python_cmd" -m pytest -q --cov=. --cov-report=term-missing --cov-fail-under=80
+COVERAGE_FILE="$temp_dir_for_python/.coverage" "$python_cmd" -m pytest -q --cov=. --cov-report=term-missing --cov-fail-under=80
 test_status=$?
 
 if [ "$test_status" -ne 0 ]; then
@@ -46,4 +81,34 @@ if [ "$test_status" -ne 0 ]; then
     exit "$test_status"
 fi
 
-echo "Pre-push check passed."
+if ! "$python_cmd" -m build --version >/dev/null 2>&1; then
+    echo "Pre-push check failed: the Python build package is not available in $python_cmd. Install requirements-dev.txt in the project environment." >&2
+    exit 1
+fi
+
+# Build from a temporary source copy so setuptools cannot leave generated
+# metadata in the checkout. Artifacts and coverage data also stay temporary.
+source_dir="$temp_dir/source"
+mkdir -p "$source_dir" "$temp_dir/packages" || {
+    echo "Pre-push check failed: could not prepare the temporary package build." >&2
+    exit 1
+}
+cp ./*.py README.md MANIFEST.in pyproject.toml "$source_dir/" || {
+    echo "Pre-push check failed: could not copy package sources for validation." >&2
+    exit 1
+}
+cp -R src "$source_dir/src" || {
+    echo "Pre-push check failed: could not copy package sources for validation." >&2
+    exit 1
+}
+
+echo "Building source and wheel distributions before push..."
+"$python_cmd" -m build --outdir "$(python_path "$temp_dir/packages")" "$(python_path "$source_dir")"
+build_status=$?
+
+if [ "$build_status" -ne 0 ]; then
+    echo "Pre-push check failed: package build did not succeed; push cancelled." >&2
+    exit "$build_status"
+fi
+
+echo "Pre-push tests, coverage, and package build checks passed."

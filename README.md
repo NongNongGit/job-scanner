@@ -2,6 +2,9 @@
 
 A Python-based job scanning and scoring utility that searches for jobs across multiple sources, filters them against your CV and target profiles, and emails the best matches.
 
+Installable Python package with a `job-scanner` command. Configuration, CVs,
+profiles, and generated results remain external to the package.
+
 ## What it does
 
 - Pulls job listings from LinkedIn and Adzuna
@@ -11,34 +14,41 @@ A Python-based job scanning and scoring utility that searches for jobs across mu
 - Saves results to `jobs.json`
 - Sends an email summary of the highest-scoring positions
 
-## Project structure
-
-- `main.py` — entry point
-- `linkedin_scraper.py` — LinkedIn job scraping logic
-- `adzuna_scraper.py` — Adzuna API integration
-- `filters.py` — custom filtering logic
-- `scoring.py` — ranking logic for job matches
-- `email_sender.py` — SendGrid email sending
-- `config.json` — global scanner settings and email configuration
-- `profiles/` — country/role-specific search profiles
-- `cv.txt` — your CV text used for scoring
-- `jobs.json` — generated job output
-- `job_history.py` and `job_history.json` — deduping/history support
-
 ## Requirements
 
-Python 3.10+ is recommended.
+Python 3.10 or newer is required.
 
-Install dependencies:
+Install from a source checkout:
 
 ```bash
-pip install -r requirements.txt
+python -m pip install .
+```
+
+For development, install the repository's dependencies:
+
+```bash
+python -m pip install -r requirements.txt -r requirements-dev.txt
 ```
 
 ## Configuration
 
+The package does not ship configuration, CV, profile, or result data. Keep your
+own `config.json`, CV text file, and profile files outside the installed package.
+The command defaults to `config.json`, `cv.txt`, and `jobs.json` in the current
+working directory, which preserves the existing repository workflow. Override
+these paths when running elsewhere:
+
+```bash
+job-scanner --config /path/to/config.json --cv /path/to/cv.txt --output /path/to/jobs.json
+job-scanner --help
+```
+
+The legacy `python main.py` invocation remains supported from a checkout and
+accepts the same options.
+
 ### 1. Environment variables
-Create a `.env` file in the project root with the required API credentials:
+Set the required API credentials in environment variables or in a `.env` file
+in the current working directory:
 
 ```env
 ADZUNA_APP_ID=your_adzuna_app_id
@@ -47,19 +57,21 @@ RAPIDAPI_KEY=your_rapidapi_key
 SENDGRID_API_KEY=your_sendgrid_api_key
 ```
 
-Note: keep this file out of version control if it contains secrets.
+Keep `.env` out of version control if it contains secrets.
 
 ### 2. App settings
-Edit `config.json` to match your job search needs:
+Create a `config.json` file to match your job search needs:
 
-- `profiles` — map profile names to files in `profiles/`
+- `profiles` — map profile names to profile filenames (bare filenames are looked
+  up in a `profiles/` directory next to the config) or to paths relative to the
+  config file
 - `global_keywords` — roles/keywords to search for
 - `retry` — retry settings for fetch calls
 - `email` — From/to email addresses and subjects
 - `scoring` — weightings used to rank jobs
 
 ### 3. Profiles
-Each file under `profiles/` contains targeting details such as:
+Each profile file contains targeting details such as:
 
 - country
 - location
@@ -84,10 +96,16 @@ Example:
 }
 ```
 
-## Running the scanner
+## Running from a checkout
 
 ```bash
 python main.py
+```
+
+Options can also be passed to the checkout entry point:
+
+```bash
+python main.py --config /path/to/config.json --cv /path/to/cv.txt --output /path/to/jobs.json
 ```
 
 This will:
@@ -95,29 +113,43 @@ This will:
 1. load all configured profiles
 2. collect jobs from LinkedIn and Adzuna
 3. score and deduplicate matches
-4. write results to `jobs.json`
+4. write results to the selected output path (default: `jobs.json`)
 5. send a daily email summary
 
-## Run unit tests before pushing
+## Pre-push validation
 
-Install the repository's Git pre-push hook so every `git push` runs the unit tests locally:
+Install the repository's Git pre-push hook so every `git push` runs the local
+unit tests and coverage check, then validates that source and wheel packages
+can be built:
 
 ```bash
 git config --local core.hooksPath .githooks
 ```
 
-The hook uses `labenv`, `.venv`, or `venv` when available, then falls back to Python on `PATH`. It runs the test suite with coverage and blocks the push if Python/pytest is unavailable, tests fail, or total coverage is below 80%. GitHub Actions applies the same 80% minimum. To run the tests and coverage check manually:
+Install development dependencies, including the `build` package, in the
+environment used by the hook:
 
 ```bash
-python -m pytest -q --cov=. --cov-report=term-missing --cov-fail-under=80
+python -m pip install -r requirements.txt -r requirements-dev.txt
 ```
+
+The hook uses `labenv`, `.venv`, or `venv` when available, then falls back to
+Python on `PATH`. It blocks the push if Python, pytest, or `build` is
+unavailable; if tests fail; if total coverage is below 80%; or if the package
+build fails. Test coverage data, build inputs, and package artifacts are kept
+in a temporary directory and removed after the check; existing `build/` and
+`dist/` contents are not used or changed. GitHub Actions applies the same 80%
+coverage minimum. The hook builds from a temporary copy of the package sources
+so generated metadata cannot affect the checkout. If you build manually, first
+create a disposable source copy and run the build from that copy; do not run
+`python -m build` from the working checkout, because it can write generated
+intermediates into its existing `build/` directory. Keep the build output
+directory separate from the source copy, and remove both temporary directories
+when finished.
 
 ## Notes
 
 - The scoring logic is intentionally tuned to your CV and job preferences.
-- Adjust the weights in `config.json` if you want to prioritise salary, company, or CV match more heavily.
-- For best results, keep `cv.txt` updated with your latest resume content.
-
-## License
-
-This project is provided as-is for personal or internal job-search automation.
+- Adjust the weights in your config if you want to prioritise salary, company, or CV match more heavily.
+- Keep your CV text updated with your latest resume content.
+- No license is selected by this packaging change; licensing remains a release decision.
