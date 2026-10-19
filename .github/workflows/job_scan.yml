@@ -2,8 +2,8 @@ name: Job Scanner
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "0 19 * * *"   # 8:00 AM NZDT
+  #schedule:
+    #- cron: "0 19 * * *"   # 8:00 AM NZDT
 
 jobs:
   run-scanner:
